@@ -35,7 +35,10 @@ def generate_house_data(num_entries=100):
         "Basement: Recreational Room (20x15)..."
     ]
 
-    # Generate data
+    # Define image folders and assign all 10 images to a listing
+    image_folders = ["images/house1", "images/house2", "images/house3"]
+    image_sets = [", ".join([f"{folder}/{i}.jpg" for i in range(1, 11)]) for folder in image_folders]
+
     data = {
         "Price": random.choices(prices, k=num_entries),
         "Address": random.choices(addresses, k=num_entries),
@@ -60,15 +63,16 @@ def generate_house_data(num_entries=100):
         "Basement Features": random.choices(basement_features, k=num_entries),
         "Interior Features": random.choices(interior_features, k=num_entries),
         "Neighbourhood Amenities": random.choices(neighbourhood_amenities, k=num_entries),
-        "Room Details": random.choices(room_details, k=num_entries)
+        "Room Details": random.choices(room_details, k=num_entries),
+        "Images": random.choices(image_sets, k=num_entries)
     }
     return pd.DataFrame(data)
 
 # Generate dataset for 100 houses
-expanded_housing_df = generate_house_data(100)
+housing_df = generate_house_data(100)
 
 # Save to CSV
-expanded_file_path = "house_listings.csv"
-expanded_housing_df.to_csv(expanded_file_path)
+file_path = "house_listings.csv"
+housing_df.to_csv(file_path)
 
-expanded_file_path
+file_path
