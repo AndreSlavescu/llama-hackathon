@@ -1,11 +1,11 @@
 from sqlmodel import Session
 from backend import db
 from backend.models import Property
+from openai import OpenAI
 
 
 def search(description: str, location: str, session: Session):
-    # TODO: convert description to an embedding
-    embedding = None
+    embedding = get_embedding(description)
 
     EMBEDDING_THRESHOLD = 0.1
     DISTANCE_THRESHOLD = 0.1
@@ -27,3 +27,8 @@ def search(description: str, location: str, session: Session):
         return []
 
     return [{"id": prop.id} for prop in results]
+
+def get_embedding(text: str, model="text-embedding-3-small"):
+   client = OpenAI()
+   text = text.replace("\n", " ")
+   return client.embeddings.create(input = [text], model=model).data[0].embedding
