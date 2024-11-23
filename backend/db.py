@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import os
+from supabase import create_client, Client
 
-SQLALCHEMY_DATABASE_URL = "postgresql://user:password@localhost/dbname"
-
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
