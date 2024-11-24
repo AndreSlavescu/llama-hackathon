@@ -2,7 +2,13 @@ from sqlmodel import Session
 from backend import db
 from backend.models import Property
 from openai import OpenAI
+import cohere
+import os
+from dotenv import load_dotenv
 
+load_dotenv(override=True)
+client = OpenAI(os.environ["OPENAI_API_KEY"])
+co = cohere.ClientV2(os.environ["COHERE_API_KEY"])
 
 def search(description: str, location: str, session: Session):
     embedding = get_embedding(description)
@@ -29,6 +35,13 @@ def search(description: str, location: str, session: Session):
     return [{"id": prop.id} for prop in results]
 
 def get_embedding(text: str, model="text-embedding-3-small"):
-   client = OpenAI()
    text = text.replace("\n", " ")
    return client.embeddings.create(input = [text], model=model).data[0].embedding
+   
+def get_rerank(docs: list[str], query: str, n=25):
+    response = co.rerank(
+        model="rerank-english-v3.0",
+        query=query,
+        documents=docs,
+        top_n=n,
+    )

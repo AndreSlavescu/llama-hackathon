@@ -5,3 +5,4 @@ supabase
 openai
 transformers
 huggingface_hub
+cohere
