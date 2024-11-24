@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent.parent
-image_dir = REPO_ROOT / "images" / "house1"
+image_dir = REPO_ROOT / "images" / "house4"
 image_dir.mkdir(parents=True, exist_ok=True)
 
 if not image_dir.exists():
@@ -34,7 +34,7 @@ for i, image in enumerate(images):
     image.save(temp_file)
 
     with open(temp_file, "rb") as f:
-        files = {"image": (os.path.basename(temp_file), f, "image/png")}
+        files = {"image": (os.path.basename(temp_file), f, "image/webp")}
 
         response = requests.post(f"{base_url}/upload-image", files=files)
 
@@ -49,11 +49,11 @@ for i, image in enumerate(images):
 
 if image_paths:
     property_data = {
-        "address": "180 John St, Toronto, ON M5T 1X5",
-        "sqft": 2000,
-        "price": 500000.00,
+        "address": "99 Harbour Sq Toronto, ON M5J 2H2",
+        "sqft": 1400,
+        "price": 1739000.00,
         "image_paths": image_paths,
-        "metadata": {"year_built": 2020, "property_type": "Single Family"},
+        "metadata": {},
     }
 
     response = requests.post(
