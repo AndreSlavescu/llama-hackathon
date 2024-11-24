@@ -27,7 +27,7 @@ class RAGSystem:
             trust_remote_code=True,
         )
 
-        self.embedding_model.max_seq_length = 32768
+        self.embedding_model.max_seq_length = 512
         self.embedding_model.tokenizer.padding_side = "right"
 
         self.task_instructions = {
@@ -47,16 +47,22 @@ class RAGSystem:
         prefix = self.query_prefix if is_query else self.passage_prefix
         if isinstance(texts, str):
             texts = [texts]
+        
+        texts = [text[:4000] for text in texts]
         texts = [text + self.embedding_model.tokenizer.eos_token for text in texts]
         
-        embeddings = self.embedding_model.encode(
-            texts,
-            batch_size=len(texts),
-            prompt=prefix if is_query else None,
-            normalize_embeddings=True,
-        )
-
-        result = torch.tensor(embeddings).cpu()
+        with torch.cuda.amp.autocast():
+            embeddings = self.embedding_model.encode(
+                texts,
+                batch_size=1,
+                prompt=prefix if is_query else None,
+                normalize_embeddings=True,
+                convert_to_tensor=True,
+                show_progress_bar=False,
+            )
+        
+        result = embeddings.cpu()
+        del embeddings
         gc.collect()
         torch.cuda.empty_cache()
         return result
@@ -66,15 +72,46 @@ class RAGSystem:
     ) -> torch.Tensor:
         return (query_embeddings @ doc_embeddings.T) * 100
 
-    def rerank(self, description: str, docs: list[str], top_k: int = 12) -> list[str]:
+    def rerank(self, description: str, docs: list[dict], content_key: str = "content", top_k: int = 12, batch_size: int = 1) -> list[dict]:
+        gc.collect()
+        torch.cuda.empty_cache()
+        
         query_embedding = self.get_embeddings([description], is_query=True)
-        doc_embeddings = self.get_embeddings(docs, is_query=False)
+        
+        all_scores = []
+        all_docs = []
+        
+        try:
+            for i in range(0, len(docs), batch_size):
+                batch_docs = docs[i:i + batch_size]
+                
+                batch_contents = [str(doc[content_key]) for doc in batch_docs]
+                doc_embeddings = self.get_embeddings(batch_contents, is_query=False)
+                
+                with torch.no_grad():
+                    scores = self.compute_similarity(query_embedding, doc_embeddings)
+                
+                scores = scores.squeeze().cpu().numpy()
+                if scores.ndim == 0:
+                    scores = np.array([scores])
+                
+                all_scores.extend(scores)
+                all_docs.extend(batch_docs)
+                
+                del doc_embeddings, scores
+                gc.collect()
+                torch.cuda.empty_cache()
 
-        scores = self.compute_similarity(query_embedding, doc_embeddings)
-
-        scores = scores.squeeze().cpu().numpy()
-        sorted_indices = np.argsort(scores)[::-1]
-        ranked_docs = [docs[i] for i in sorted_indices]
+        except Exception as e:
+            print(f"Error during reranking: {e}")
+            return docs[:top_k]
+        
+        del query_embedding
+        gc.collect()
+        torch.cuda.empty_cache()
+        
+        sorted_indices = np.argsort(all_scores)[::-1]
+        ranked_docs = [all_docs[i] for i in sorted_indices]
 
         return ranked_docs[:top_k]
 

@@ -1,47 +1,68 @@
-from sqlmodel import Session
-from backend import db
-from backend.models import Property
-from openai import OpenAI
-import cohere
+from db import db_client
+from models.property import Property
 import os
-from dotenv import load_dotenv
+import json
 
-load_dotenv(override=True)
-client = OpenAI(os.environ["OPENAI_API_KEY"])
-co = cohere.ClientV2(os.environ["COHERE_API_KEY"])
+# rag_system
+from llm_generation.rag_utils import RAGSystem
 
-def search(description: str, location: str, session: Session):
-    embedding = get_embedding(description)
+# text_generator
+from llm_generation.generate import TextGenerator
+
+# services_system_prompts
+from services.services_system_prompts import SEARCH_SYSTEM_PROMPT
+
+
+def search_properties(
+    description: str,
+    location: str,
+    text_generator: TextGenerator,
+    rag_system: RAGSystem,
+):
+    rewritten_description = text_generator.generate(
+        SEARCH_SYSTEM_PROMPT.format(description=description)
+    )
+    embedding = rag_system.get_embeddings(rewritten_description)
+
+    if hasattr(embedding, "tolist"):
+        embedding = embedding.tolist()
+
+    if isinstance(embedding[0], list):
+        embedding = embedding[0]
+
+    embedding_str = "[" + ",".join(str(float(x)) for x in embedding) + "]"
 
     EMBEDDING_THRESHOLD = 0.1
     DISTANCE_THRESHOLD = 0.1
 
-    results = (
-        db.query(Property)
-        .filter(
-            cosine_distance(Property.embedding, embedding)
-            < EMBEDDING_THRESHOLD  # Threshold can be tuned
-        )
-        .all()
+    db_response = db_client.rpc(
+        "match_documents",
+        {
+            "query_embedding": embedding_str,
+            "match_threshold": EMBEDDING_THRESHOLD,
+            "match_count": 20,
+        },
+    ).execute()
+
+    data = db_response.data
+
+    results = []
+    for item in data:
+        if isinstance(item, dict):
+            results.append(item)
+
+    reranked_results = rag_system.rerank(
+        description, results, content_key="content"
     )
 
-    session.scalars(select(Item.embedding.l2_distance([3, 1, 2])))
+    final_results = []
+    for result in reranked_results:
+        if isinstance(result['metadata'], str):
+            try:
+                result['metadata'] = json.loads(result['metadata'])
+            except json.JSONDecodeError:
+                result['metadata'] = {}
+        
+        final_results.append(Property(**result))
 
-    # TODO: rerank results
-
-    if not results:
-        return []
-
-    return [{"id": prop.id} for prop in results]
-
-def get_embedding(text: str, model="text-embedding-3-small"):
-   text = text.replace("\n", " ")
-   return client.embeddings.create(input = [text], model=model).data[0].embedding
-   
-def get_rerank(docs: list[str], query: str, n=25):
-    response = co.rerank(
-        model="rerank-english-v3.0",
-        query=query,
-        documents=docs,
-        top_n=n,
-    )
+    return final_results
