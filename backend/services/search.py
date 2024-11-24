@@ -19,9 +19,10 @@ def search_properties(
     text_generator: TextGenerator,
     rag_system: RAGSystem,
 ):
-    rewritten_description = text_generator.generate(
-        SEARCH_SYSTEM_PROMPT.format(description=description)
-    )
+    # rewritten_description = text_generator.generate(
+    #     SEARCH_SYSTEM_PROMPT.format(description=description)
+    # )
+    rewritten_description = description
     embedding = rag_system.get_embeddings(rewritten_description)
 
     if hasattr(embedding, "tolist"):
@@ -51,18 +52,16 @@ def search_properties(
         if isinstance(item, dict):
             results.append(item)
 
-    reranked_results = rag_system.rerank(
-        description, results, content_key="content"
-    )
+    reranked_results = rag_system.rerank(description, results, content_key="content")
 
     final_results = []
     for result in reranked_results:
-        if isinstance(result['metadata'], str):
+        if isinstance(result["metadata"], str):
             try:
-                result['metadata'] = json.loads(result['metadata'])
+                result["metadata"] = json.loads(result["metadata"])
             except json.JSONDecodeError:
-                result['metadata'] = {}
-        
+                result["metadata"] = {}
+
         final_results.append(Property(**result))
 
     return final_results
