@@ -8,5 +8,4 @@ class Property(BaseModel):
     sqft: int
     price: float
     description: Optional[str]
-    embedding: Optional[List[float]]  # TODO: check if correct type
     metadata: Optional[dict]

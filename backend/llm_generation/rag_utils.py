@@ -1,27 +1,32 @@
+from typing import List
 from transformers import AutoModel, AutoTokenizer
 import torch
 import torch.nn.functional as F
 from liger_kernel.transformers import apply_liger_kernel_to_mistral
 from sentence_transformers import SentenceTransformer
+import numpy as np
+import gc
+import os
 
 apply_liger_kernel_to_mistral(
-    rope = True,
-    cross_entropy = False,
-    fused_linear_cross_entropy = True,
-    rms_norm = True,
-    swiglu = True,
-    model = None,
+    rope=True,
+    cross_entropy=False,
+    fused_linear_cross_entropy=True,
+    rms_norm=True,
+    swiglu=True,
+    model=None,
 )
 
 class RAGSystem:
     def __init__(self):
-        torch.backends.cuda.enable_flash_sdp(False)
-        
+        torch.backends.cuda.enable_flash_sdp(True)
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
         self.embedding_model = SentenceTransformer(
             "nvidia/NV-Embed-v2", 
-            trust_remote_code=True
-        ).cuda()
-        
+            trust_remote_code=True,
+        )
+
         self.embedding_model.max_seq_length = 32768
         self.embedding_model.tokenizer.padding_side = "right"
 
@@ -38,36 +43,41 @@ class RAGSystem:
         )
         self.max_length = 32768
 
-    def get_embeddings(self, texts, is_query=False):
+    def get_embeddings(self, texts, is_query=False) -> torch.Tensor:
         prefix = self.query_prefix if is_query else self.passage_prefix
+        if isinstance(texts, str):
+            texts = [texts]
         texts = [text + self.embedding_model.tokenizer.eos_token for text in texts]
+        
         embeddings = self.embedding_model.encode(
-            texts, 
+            texts,
             batch_size=len(texts),
             prompt=prefix if is_query else None,
-            normalize_embeddings=True
+            normalize_embeddings=True,
         )
-        return torch.tensor(embeddings).cuda()
 
-    def compute_similarity(self, query_embeddings, passage_embeddings):
-        return (query_embeddings @ passage_embeddings.T) * 100
+        result = torch.tensor(embeddings).cpu()
+        gc.collect()
+        torch.cuda.empty_cache()
+        return result
 
-    def generate_embedding(self, description: str) -> str:
-        embedding = self.embedding_model.encode(description, task="text-matching")
-        return embedding
+    def compute_similarity(
+        self, query_embeddings: torch.Tensor, doc_embeddings: torch.Tensor
+    ) -> torch.Tensor:
+        return (query_embeddings @ doc_embeddings.T) * 100
 
     def rerank(self, description: str, docs: list[str], top_k: int = 12) -> list[str]:
         query_embedding = self.get_embeddings([description], is_query=True)
         doc_embeddings = self.get_embeddings(docs, is_query=False)
-        
-        scores = torch.nn.functional.cosine_similarity(
-            query_embedding, doc_embeddings
-        )
 
-        sorted_indices = scores.argsort(descending=True)
-        ranked_docs = [docs[i] for i in sorted_indices.cpu().numpy()]
+        scores = self.compute_similarity(query_embedding, doc_embeddings)
+
+        scores = scores.squeeze().cpu().numpy()
+        sorted_indices = np.argsort(scores)[::-1]
+        ranked_docs = [docs[i] for i in sorted_indices]
 
         return ranked_docs[:top_k]
+
 
 def test():
     if not torch.cuda.is_available():
@@ -76,8 +86,8 @@ def test():
     rag_system = RAGSystem()
 
     # Test embedding
-    embedding = rag_system.generate_embedding("This is a test description")
-    embedding2 = rag_system.generate_embedding("What is AI?")
+    embedding = rag_system.get_embeddings(["This is a test description"])
+    embedding2 = rag_system.get_embeddings(["What is AI?"])
     print("Embedding:", embedding)
     print("Embedding2:", embedding2)
 
