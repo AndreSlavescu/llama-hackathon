@@ -1,4 +1,3 @@
-from fastapi import UploadFile
 from db import db_client
 
 

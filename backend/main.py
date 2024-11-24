@@ -6,6 +6,7 @@ from fastapi import FastAPI, UploadFile
 # vision model
 # from groq_utils.groq_inference import get_completion
 
+from services.get_images import get_image_urls
 from services.upload_image import upload_image_to_storage
 from schemas.requests import CreateRequest
 from schemas.responses import CreateResponse
@@ -59,3 +60,8 @@ async def upload_image(image: UploadFile):
     public_url = upload_image_to_storage(contents, filepath)
 
     return {"image_path": filepath}
+
+
+@app.get("/{property_id}/images")
+def images(property_id: int):
+    return get_image_urls(property_id)
