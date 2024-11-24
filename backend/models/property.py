@@ -8,4 +8,5 @@ class Property(BaseModel):
     sqft: int
     price: float
     description: Optional[str]
+    coordinates: Optional[List[float]]
     metadata: Optional[dict]

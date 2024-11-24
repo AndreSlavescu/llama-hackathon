@@ -52,10 +52,19 @@ def search_properties(
         if isinstance(item, dict):
             results.append(item)
 
-    reranked_results = rag_system.rerank(description, results, content_key="content")
+    reranked_results = rag_system.rerank(
+        description, results, content_key="description"
+    )
 
     final_results = []
     for result in reranked_results:
+        # convert coordinates from a string to a List[float]
+        if isinstance(result["coordinates"], str):
+            try:
+                result["coordinates"] = json.loads(result["coordinates"])
+            except json.JSONDecodeError:
+                result["coordinates"] = None
+
         if isinstance(result["metadata"], str):
             try:
                 result["metadata"] = json.loads(result["metadata"])

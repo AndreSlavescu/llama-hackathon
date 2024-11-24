@@ -48,7 +48,13 @@ const BackgroundPattern = () => {
   );
 };
 
-const SearchInterface = ({ onSearch }) => {
+const LoadingSpinner = () => (
+  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+  </div>
+);
+
+const SearchInterface = ({ onSearch, isLoading }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
@@ -99,6 +105,7 @@ const SearchInterface = ({ onSearch }) => {
                 placeholder="Where would you like to live?"
                 className="w-full px-12 py-4 bg-white rounded-full shadow-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow duration-200"
               />
+              {isLoading && <LoadingSpinner />}
             </div>
           </form>
         </div>
@@ -109,14 +116,42 @@ const SearchInterface = ({ onSearch }) => {
 
 function App() {
   const [query, setQuery] = useState("");
+  const [response, setResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   
   const searchFunction = (query) => {
     setQuery(query);
+    setIsLoading(true);
+    fetch(`http://127.0.0.1:8000/search`, {
+      method: "POST",
+      headers: {
+      "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+      description: query,
+      location: ""
+      })
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log(data)
+        setResponse(data);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        setIsLoading(false);
+      });
   };
 
   return (
     <div className="App relative">
-      {!query ? <SearchInterface onSearch={searchFunction} /> : <LLMContainer />}
+      {!response ? <SearchInterface onSearch={searchFunction} isLoading={isLoading} /> : <LLMContainer response={response} />}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 # llama model
 from services.search import search_properties
@@ -14,6 +15,16 @@ from schemas.responses import CreateResponse
 from services.create import create_property
 
 app = FastAPI()
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class TextGeneratorWrapper:

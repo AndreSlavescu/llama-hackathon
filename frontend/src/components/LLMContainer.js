@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Map from './Map';
 import Chat from './Chat';
 import HouseList from './housing_column/HouseList';
 
-const LLMContainer = () => {
+const LLMContainer = ({response}) => {
   const [markerData, setMarkerData] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  console.log(response);
+
+  useEffect(() => {
+    const markerData = response.map((house) => ({
+      position: [house.coordinates[1], house.coordinates[0]],
+      popup: house.address
+    }))
+
+    setMarkerData(markerData)
+  }, [response])
+
+  
 
   const sampleHouses = [
     {
@@ -46,7 +59,7 @@ const LLMContainer = () => {
           <h2 className="text-xl font-semibold text-slate-800">Available Properties</h2>
         </div>
         <div className="p-4">
-          <HouseList houses={sampleHouses} />
+          <HouseList houses={response || sampleHouses} />
         </div>
       </div>
 

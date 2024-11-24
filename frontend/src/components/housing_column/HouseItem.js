@@ -4,7 +4,7 @@ import { FaBed, FaBath, FaRulerCombined, FaChevronDown, FaChevronUp } from 'reac
 import SlideshowModal from './SlideshowModal';
 
 const HouseItem = ({ house }) => {
-  const { images, title, price, bedrooms, bathrooms, squareFeet, description } = house;
+  const { address, price, sqft, description } = house;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -31,27 +31,27 @@ const HouseItem = ({ house }) => {
       onClick={description ? toggleExpand : null}
     >
       <div style={styles.header}>
-        <img
+        {/* <img
           src={images[0]}
-          alt={title}
+          alt={address}
           style={styles.thumbnail}
           onClick={openModal}
-        />
+        /> */}
         <div style={styles.details}>
-          <HouseTitle title={title} />
+          <HouseTitle title={address} />
           <p style={styles.price}>${price.toLocaleString()}</p>
           <div style={styles.info}>
-            <div style={styles.infoItem}>
+            {/* <div style={styles.infoItem}>
               <FaBed style={styles.icon} />
               <span>{bedrooms} Beds</span>
             </div>
             <div style={styles.infoItem}>
               <FaBath style={styles.icon} />
               <span>{bathrooms} Baths</span>
-            </div>
+            </div> */}
             <div style={styles.infoItem}>
               <FaRulerCombined style={styles.icon} />
-              <span>{squareFeet} sqft</span>
+              <span>{sqft} sqft</span>
             </div>
           </div>
         </div>
@@ -76,11 +76,11 @@ const HouseItem = ({ house }) => {
           <p style={styles.description}>{description}</p>
         </div>
       )}
-      <SlideshowModal
+      {/* <SlideshowModal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         images={images}
-      />
+      /> */}
     </div>
   );
 };
