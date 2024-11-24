@@ -55,7 +55,7 @@ const SearchInterface = ({ onSearch }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (query.trim()) {
-      onSearch(query);
+      onSearch(query.trim());
     }
   };
 
@@ -111,8 +111,7 @@ function App() {
   const [query, setQuery] = useState("");
   
   const searchFunction = (query) => {
-    console.log("Querying", query);
-    setQuery(query.trim());
+    setQuery(query);
   };
 
   return (
