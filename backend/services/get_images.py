@@ -8,5 +8,10 @@ def get_image_urls(property_id: int) -> List[str]:
     )
     data = db_response.data
     print(data)
-    result = [image["path"] for image in data]
+    result = []
+    for image in data:
+        path = image["path"]
+        url = db_client.storage.from_("images").get_public_url(path)
+        result.append(url)
+
     return result

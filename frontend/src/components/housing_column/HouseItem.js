@@ -1,12 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HouseTitle from './HouseTitle';
 import { FaBed, FaBath, FaRulerCombined, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import SlideshowModal from './SlideshowModal';
 
 const HouseItem = ({ house }) => {
-  const { address, price, sqft, description } = house;
+  const { id, address, price, sqft, description } = house;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchImages = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/${id}/images`);
+        if (!response.ok) {
+          throw new Error(`Error fetching images: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log(data, " debugging line for data of images")
+        setImages(data); // Assuming the backend returns { images: [url1, url2, ...] }
+      } catch (err) {
+        console.error(err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchImages();
+  }, [id]);
 
   const toggleExpand = () => {
     setIsExpanded((prev) => !prev);
@@ -28,15 +54,15 @@ const HouseItem = ({ house }) => {
         flexDirection: 'column',
         cursor: description ? 'pointer' : 'default',
       }}
-      onClick={description ? toggleExpand : null}
+      onClick={description && !isModalOpen ? toggleExpand : null}
     >
       <div style={styles.header}>
-        {/* <img
+        <img
           src={images[0]}
           alt={address}
           style={styles.thumbnail}
           onClick={openModal}
-        /> */}
+        />
         <div style={styles.details}>
           <HouseTitle title={address} />
           <p style={styles.price}>${price.toLocaleString()}</p>
@@ -60,7 +86,7 @@ const HouseItem = ({ house }) => {
             style={styles.arrowContainer}
             onClick={(e) => {
               e.stopPropagation();
-              toggleExpand();
+              if (!isModalOpen) toggleExpand();
             }}
           >
             {isExpanded ? (
@@ -76,11 +102,11 @@ const HouseItem = ({ house }) => {
           <p style={styles.description}>{description}</p>
         </div>
       )}
-      {/* <SlideshowModal
+      <SlideshowModal
         isOpen={isModalOpen}
         onRequestClose={closeModal}
         images={images}
-      /> */}
+      />
     </div>
   );
 };
