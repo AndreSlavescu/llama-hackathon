@@ -7,7 +7,7 @@ import json
 from llm_generation.rag_utils import RAGSystem
 
 # text_generator
-from llm_generation.generate import TextGenerator
+from llm_generation.llm_generate import TextGenerator
 
 # services_system_prompts
 from services.services_system_prompts import SEARCH_SYSTEM_PROMPT
