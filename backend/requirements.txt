@@ -6,3 +6,10 @@ openai
 transformers
 huggingface_hub
 cohere
+einops
+flash-attn
+tiktoken
+protobuf
+sentencepiece
+torch
+geopy

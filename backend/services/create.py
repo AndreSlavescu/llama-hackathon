@@ -1,28 +1,45 @@
 from typing import List, Optional
 from db import db_client
+from pydantic import EncodedBytes
+
+from models.property import Property
+from utils import get_coordinates
 
 
-def create(
+def create_property(
     address: str,
     sqft: int,
-    listing_price: float,
-    coordinates: List[float],
-    metadata: Optional[dict] = None,
-):
-    # Generate a description of the listing from photos
+    price: float,
+    images: List[EncodedBytes],
+    metadata: Optional[dict]
+) -> Property:
+    coordinates = get_coordinates(address)
+    if not coordinates:
+        raise Exception("Error: no coordinates")
+
+    # TODO: Generate a description of the listing from photos
     description = ""
 
-    # Generate an embedding of the description
+    # TODO: Generate an embedding of the description
     embedding = ""
 
-    db_client.table("Property").insert(
+    print(coordinates)
+    print(images)
+
+    return
+
+    db_response = db_client.table("Property").insert(
         {
             "address": address,
             "description": description,
             "sqft": sqft,
-            "listing_price": listing_price,
+            "price": price,
             "embedding": embedding,
             "coordinates": coordinates,
             "metadata": metadata,
         }
     )
+
+    property = Property(**db_response)
+
+    return property
