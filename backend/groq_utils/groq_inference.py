@@ -2,16 +2,19 @@ from groq import Groq
 from groq_utils.system_prompts import GROQ_SYSTEM_PROMPT, format_system_prompt
 import base64
 
-from typing import Optional, List
+from typing import Optional, List, Union
 from concurrent.futures import ThreadPoolExecutor
 import time
+from ratelimit import limits, sleep_and_retry
 
 client = Groq()
 
 
+@sleep_and_retry
+@limits(calls=5, period=30)
 def get_completion(
     text: Optional[str],
-    image_filepath: str,
+    image_filepath: Union[str, bytes],
     temperature: float = 1.0,
     max_tokens: int = 1024,
     top_p: float = 1.0,
@@ -47,24 +50,36 @@ def get_completion(
     return completion.choices[0].message
 
 
-def process_images_batch(images: List[bytes], batch_size: int = 4, max_workers: int = 4) -> List[str]:
-    """Process images concurrently using a thread pool"""
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(get_completion, None, img) 
-            for img in images
-        ]
+def process_images_batch(
+    images: List[bytes], 
+    batch_size: int = 4, 
+    max_workers: int = 4,
+    delay_between_batches: float = 6.0
+) -> List[str]:
+    """Process images concurrently using a thread pool with rate limiting"""
+    results = []
+    
+    for i in range(0, len(images), batch_size):
+        batch = images[i:i + batch_size]
         
-        results = []
-        for future in futures:
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as e:
-                print(f"Error processing image: {e}")
-                results.append(None)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(get_completion, None, img)
+                for img in batch
+            ]
+            
+            for future in futures:
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    print(f"Error processing image: {e}")
+                    results.append(None)
+        
+        if i + batch_size < len(images):
+            time.sleep(delay_between_batches)
                 
-        return results
+    return results
 
 
 def get_completion_with_retry(

@@ -34,7 +34,7 @@ def create_property(
 ) -> Property:
     coordinates = get_coordinates(address)
     if not coordinates:
-        raise Exception("Error: no coordinates")
+        raise Exception(f"Error: no coordinates for {address}")
 
     # init property in DB
     db_response = (
@@ -64,16 +64,13 @@ def create_property(
         for image_path in image_paths
     ]
 
-    batch_size = 4  
+    batch_size = 4
     descriptions = []
-    
+
     for i in range(0, len(images), batch_size):
-        batch = images[i:i + batch_size]
+        batch = images[i : i + batch_size]
         with ThreadPoolExecutor(max_workers=batch_size) as executor:
-            futures = [
-                executor.submit(get_completion, None, img)
-                for img in batch
-            ]
+            futures = [executor.submit(get_completion, None, img) for img in batch]
             batch_descriptions = []
             for future in futures:
                 try:
@@ -82,9 +79,9 @@ def create_property(
                 except Exception as e:
                     print(f"Error processing image: {e}")
                     batch_descriptions.append(None)
-            
+
             descriptions.extend(batch_descriptions)
-            
+
         for img in batch:
             del img
         torch.cuda.empty_cache()
