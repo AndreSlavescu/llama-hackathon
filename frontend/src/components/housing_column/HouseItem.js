@@ -99,7 +99,14 @@ const HouseItem = ({ house }) => {
       </div>
       {isExpanded && (
         <div style={styles.expandedContent}>
-          <p style={styles.description}>{description}</p>
+          <p style={styles.description}>
+  {description.split('\\n').map((line, index) => (
+    <span key={index}>
+      {line}
+      <br />
+    </span>
+  ))}
+</p>
         </div>
       )}
       <SlideshowModal
