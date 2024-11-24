@@ -6,3 +6,5 @@ openai
 transformers
 huggingface_hub
 cohere
+datasets
+sentence-transformers
