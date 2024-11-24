@@ -14,12 +14,3 @@ source .env
 pip install -r requirements.txt
 fastapi dev main.py
 ```
-
-### Build llm_generation dependencies
-```
-chmod +x llm_generation/build.sh
-```
-
-```
-./llm_generation/build.sh
-```
