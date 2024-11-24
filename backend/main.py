@@ -11,13 +11,20 @@ from schemas.requests import SearchRequest
 app = FastAPI()
 generator = TextGenerator()
 
+
 @app.post("/generate/")
 def generate_text(prompt: str):
     text = generator.generate(prompt)
     return {"text": text}
 
+
 @app.post("/search/")
-def search_properties(search: SearchRequest, db: Session = Depends(get_db)):
+def search_properties(search: SearchRequest):
     print(search)
 
     return {"message": "Search successful"}
+
+
+@app.post("/create")
+def create_listing():
+    return {"message": "ok"}
