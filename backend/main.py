@@ -58,6 +58,7 @@ def health():
 @app.post("/create", response_model=CreateResponse)
 def create(request: CreateRequest):
     rag_system = rag_wrapper.get_instance()
+    text_generator = generator_wrapper.get_instance()
     property_dict = create_property(
         address=request.address,
         sqft=request.sqft,
@@ -65,6 +66,7 @@ def create(request: CreateRequest):
         image_paths=request.image_paths,
         metadata=request.metadata,
         rag_system=rag_system,
+        text_generator=text_generator,
     )
     return CreateResponse(property=property_dict)
 

@@ -18,6 +18,9 @@ for index, row in listings_df.iterrows():
     property_image_dir = REPO_ROOT / "images" / f"house{index_mod + 1}"
     print(f"Checking directory: {property_image_dir}")
 
+    if index >= 1:
+        break
+
     if not property_image_dir.exists():
         print(
             f"Warning: No image directory found for house{index_mod + 1}, skipping..."

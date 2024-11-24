@@ -1,4 +1,6 @@
 from typing import List, Optional
+from services.services_system_prompts import CREATE_SYSTEM_PROMPT
+from llm_generation.llm_generate import TextGenerator
 from db import db_client
 from pydantic import EncodedBytes
 import torch
@@ -31,6 +33,7 @@ def create_property(
     image_paths: List[str],
     metadata: Optional[dict],
     rag_system: RAGSystem,
+    text_generator: TextGenerator,
 ) -> Property:
     coordinates = get_coordinates(address)
     if not coordinates:
@@ -86,7 +89,13 @@ def create_property(
             del img
         torch.cuda.empty_cache()
 
-    final_description = format_descriptions(descriptions=descriptions)
+    all_descriptions = format_descriptions(descriptions=descriptions)
+
+    final_description = text_generator.generate(
+        CREATE_SYSTEM_PROMPT.format(description=all_descriptions)
+    )
+
+    print(final_description)
 
     embedding = rag_system.get_embeddings(final_description)
     embedding_list = embedding.flatten().tolist()
