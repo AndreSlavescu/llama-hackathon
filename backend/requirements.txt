@@ -3,4 +3,6 @@ fastapi[standard]
 uvicorn
 supabase
 openai
+transformers
+huggingface_hub
 cohere
